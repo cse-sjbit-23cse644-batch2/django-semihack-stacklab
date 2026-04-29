@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Backlog Tracking{% endblock %}
+{% block page_title %}Backlog Tracking{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-danger bg-opacity-10">
+      <div class="card-body text-center">
+        <h3 class="fw-bold text-danger">{{ total_backlogs }}</h3>
+        <small class="text-muted">Active Backlogs</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-success bg-opacity-10">
+      <div class="card-body text-center">
+        <h3 class="fw-bold text-success">{{ cleared_backlogs }}</h3>
+        <small class="text-muted">Cleared Backlogs</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter -->
+<div class="card stat-card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Student USN</label>
+        {{ form.usn }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Subject Code</label>
+        {{ form.subject_code }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Semester</label>
+        {{ form.semester }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Status</label>
+        {{ form.cleared }}
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Semester-Wise Backlog Trend</h6>
+        <canvas id="trendChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Top 10 Students with Most Backlogs</h6>
+        <div class="table-responsive" style="max-height:200px; overflow-y:auto">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr><th>USN</th><th>Name</th><th>Backlogs</th></tr>
+            </thead>
+            <tbody>
+              {% for m in most_backlogs %}
+              <tr>
+                <td><code>{{ m.usn }}</code></td>
+                <td>{{ m.student_name|default:"—" }}</td>
+                <td><span class="badge bg-danger">{{ m.backlog_count }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted text-center">No backlogs</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Backlog Table -->
+<div class="card stat-card">
+  <div class="card-body">
+    <h6 class="text-muted mb-3">Backlog Records</h6>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm align-middle">
+        <thead class="table-light">
+          <tr><th>USN</th><th>Student Name</th><th>Subject Code</th><th>Subject</th><th>Sem</th><th>Marks</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for b in backlogs %}
+          <tr>
+            <td><code>{{ b.usn }}</code></td>
+            <td>{{ b.student_name|default:"—" }}</td>
+            <td><code>{{ b.subject_code }}</code></td>
+            <td>{{ b.subject_name|default:"—" }}</td>
+            <td>{{ b.semester }}</td>
+            <td class="text-danger fw-semibold">{{ b.marks|default:"—" }}</td>
+            <td>
+              {% if b.cleared %}
+                <span class="badge bg-success">Cleared</span>
+              {% else %}
+                <span class="badge bg-danger">Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No backlogs match your filters.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const trendLabels = {{ trend_labels_json|safe }};
+const trendValues = {{ trend_values_json|safe }};
+new Chart(document.getElementById('trendChart'), {
+  type: 'line',
+  data: {
+    labels: trendLabels.length ? trendLabels : ['No data'],
+    datasets: [{
+      label: 'Backlogs',
+      data: trendValues.length ? trendValues : [0],
+      borderColor: '#ef4444',
+      backgroundColor: 'rgba(239,68,68,0.1)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#ef4444',
+    }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

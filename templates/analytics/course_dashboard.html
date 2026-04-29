@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Course Analysis{% endblock %}
+{% block page_title %}Course-Wise Analysis{% endblock %}
+
+{% block content %}
+<!-- Filter Form -->
+<div class="card stat-card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold">Subject Code</label>
+        {{ form.subject_code }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Semester</label>
+        {{ form.semester }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Academic Year</label>
+        {{ form.academic_year }}
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel me-1"></i>Apply Filter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if stats %}
+<!-- Summary Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-primary bg-opacity-10">
+      <div class="card-body text-center">
+        <h4 class="fw-bold text-primary">{{ stats.total }}</h4>
+        <small class="text-muted">Total Students</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-success bg-opacity-10">
+      <div class="card-body text-center">
+        <h4 class="fw-bold text-success">{{ stats.pass_percent }}%</h4>
+        <small class="text-muted">Pass Rate</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-danger bg-opacity-10">
+      <div class="card-body text-center">
+        <h4 class="fw-bold text-danger">{{ stats.fail_percent }}%</h4>
+        <small class="text-muted">Fail Rate</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card border-0 bg-warning bg-opacity-10">
+      <div class="card-body text-center">
+        <h4 class="fw-bold text-warning">{{ stats.failed }}</h4>
+        <small class="text-muted">Failed Students</small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Pass % by Subject</h6>
+        <canvas id="subjectChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Score Distribution</h6>
+        <canvas id="distChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subject Stats Table -->
+<div class="card stat-card">
+  <div class="card-body">
+    <h6 class="text-muted mb-3">Subject-Wise Performance</h6>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Subject Code</th><th>Subject Name</th><th>Sem</th>
+            <th>Total</th><th>Passed</th><th>Pass %</th>
+            <th>Avg Marks</th><th>Avg SGPA</th><th>Alert</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subject_stats %}
+          <tr class="{% if s.pass_percent < 70 %}table-warning{% endif %}">
+            <td><code>{{ s.subject_code }}</code></td>
+            <td>{{ s.subject_name|default:"—" }}</td>
+            <td>{{ s.semester }}</td>
+            <td>{{ s.total }}</td>
+            <td>{{ s.passed }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress flex-grow-1" style="height:6px; min-width:60px">
+                  <div class="progress-bar {% if s.pass_percent >= 70 %}bg-success{% else %}bg-danger{% endif %}"
+                       style="width:{{ s.pass_percent }}%"></div>
+                </div>
+                <small>{{ s.pass_percent }}%</small>
+              </div>
+            </td>
+            <td>{{ s.avg_marks }}</td>
+            <td>{{ s.avg_sgpa }}</td>
+            <td>
+              {% if s.pass_percent < 70 %}
+                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Low</span>
+              {% else %}
+                <span class="badge bg-success">OK</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted py-4">No data found. Try adjusting filters.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const labels = {{ chart_labels_json|safe }};
+const passData = {{ chart_pass_json|safe }};
+const failData = {{ chart_fail_json|safe }};
+const distLabels = {{ dist_labels_json|safe }};
+const distValues = {{ dist_values_json|safe }};
+
+if (labels.length) {
+  new Chart(document.getElementById('subjectChart'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Pass %', data: passData, backgroundColor: '#22c55e', borderRadius: 4 },
+        { label: 'Fail %', data: failData, backgroundColor: '#ef4444', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { x: { stacked: true }, y: { stacked: true, max: 100, ticks: { callback: v => v + '%' } } }
+    }
+  });
+}
+
+if (distValues.some(v => v > 0)) {
+  new Chart(document.getElementById('distChart'), {
+    type: 'bar',
+    data: {
+      labels: distLabels,
+      datasets: [{
+        label: 'Students',
+        data: distValues,
+        backgroundColor: ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#6366f1','#8b5cf6','#94a3b8'],
+        borderRadius: 4,
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
+</script>
+{% endblock %}

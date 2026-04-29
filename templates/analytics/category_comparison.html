@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}Category Analysis{% endblock %}
+{% block page_title %}Category-Wise Performance{% endblock %}
+{% block content %}
+
+<div class="card stat-card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Category</label>
+        {{ form.category }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Admission Quota</label>
+        {{ form.admission_quota }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Semester</label>
+        {{ form.semester }}
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Filter</button>
+      </div>
+      <div class="col-md-2">
+        <a href="{% url 'category_analysis' %}" class="btn btn-outline-secondary w-100">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Pass Rate by Category</h6>
+        {% if cat_data %}
+        <canvas id="catPassChart" height="220"></canvas>
+        {% else %}
+        <p class="text-center text-muted py-5">No data for selected filters.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Average SGPA by Category</h6>
+        {% if cat_data %}
+        <canvas id="catSgpaChart" height="220"></canvas>
+        {% else %}
+        <p class="text-center text-muted py-5">No data for selected filters.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Category-Wise Performance</h6>
+        <div class="table-responsive">
+          <table class="table table-hover table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Category</th>
+                <th>Total</th>
+                <th>Passed</th>
+                <th>Pass %</th>
+                <th>Avg SGPA</th>
+                <th>Avg Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in cat_data %}
+              <tr>
+                <td><span class="badge bg-primary">{{ c.category }}</span></td>
+                <td>{{ c.total }}</td>
+                <td>{{ c.passed }}</td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height:6px">
+                      <div class="progress-bar {% if c.pass_percent >= 70 %}bg-success{% else %}bg-danger{% endif %}"
+                           style="width:{{ c.pass_percent }}%"></div>
+                    </div>
+                    <small>{{ c.pass_percent }}%</small>
+                  </div>
+                </td>
+                <td>{{ c.avg_sgpa }}</td>
+                <td>{{ c.avg_marks }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center text-muted py-3">No data found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">Admission Quota Performance</h6>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Quota</th>
+                <th>Total</th>
+                <th>Pass %</th>
+                <th>Avg SGPA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for q in quota_data %}
+              <tr>
+                <td><span class="badge bg-secondary">{{ q.admission_quota }}</span></td>
+                <td>{{ q.total }}</td>
+                <td>{{ q.pass_percent }}%</td>
+                <td>{{ q.avg_sgpa }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center text-muted">No data</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if toppers %}
+<div class="card stat-card">
+  <div class="card-body">
+    <h6 class="text-muted mb-3">
+      <i class="bi bi-trophy-fill text-warning me-2"></i>Toppers (SGPA >= 9.5)
+    </h6>
+    <div class="table-responsive">
+      <table class="table table-sm table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>USN</th>
+            <th>Student Name</th>
+            <th>SGPA</th>
+            <th>Category</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in toppers %}
+          <tr>
+            <td><span class="badge bg-warning text-dark">{{ forloop.counter }}</span></td>
+            <td><code>{{ t.usn }}</code></td>
+            <td>{{ t.student_name|default:"—" }}</td>
+            <td><strong class="text-success">{{ t.sgpa }}</strong></td>
+            <td><span class="badge bg-primary">{{ t.category }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const cats = {{ chart_categories_json|safe }};
+const passRates = {{ chart_pass_rates_json|safe }};
+const avgSgpa = {{ chart_avg_sgpa_json|safe }};
+const bgColors = [
+  '#3b82f6','#22c55e','#8b5cf6','#f97316','#ef4444',
+  '#14b8a6','#f59e0b','#6366f1','#ec4899','#84cc16',
+  '#06b6d4','#a855f7','#fb923c','#34d399','#60a5fa'
+];
+
+if (cats.length > 0) {
+  new Chart(document.getElementById('catPassChart'), {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [{
+        label: 'Pass %',
+        data: passRates,
+        backgroundColor: bgColors.slice(0, cats.length),
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { max: 100, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('catSgpaChart'), {
+    type: 'radar',
+    data: {
+      labels: cats,
+      datasets: [{
+        label: 'Avg SGPA',
+        data: avgSgpa,
+        borderColor: '#1a56db',
+        backgroundColor: 'rgba(26,86,219,0.15)',
+        borderWidth: 2,
+        pointBackgroundColor: '#1a56db'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: { r: { min: 0, max: 10, ticks: { stepSize: 2 } } }
+    }
+  });
+}
+</script>
+{% endblock %}

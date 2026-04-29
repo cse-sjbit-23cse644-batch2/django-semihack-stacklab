@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Upload Results{% endblock %}
+{% block page_title %}Upload Results{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <div class="card stat-card">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-1">Upload Results File</h5>
+        <p class="text-muted small mb-4">Accepted: CSV or Excel (.xlsx). See required column format below.</p>
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Results File <span class="text-danger">*</span></label>
+            {{ form.file }}
+            {% if form.file.errors %}
+              <div class="text-danger small mt-1">{{ form.file.errors }}</div>
+            {% endif %}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col">
+              <label class="form-label fw-semibold">Academic Year</label>
+              {{ form.academic_year }}
+            </div>
+            <div class="col">
+              <label class="form-label fw-semibold">Semester Override</label>
+              {{ form.semester }}
+              <div class="form-text">Leave blank to use file's semester column</div>
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-upload me-2"></i>Upload & Analyse
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Column format guide -->
+    <div class="card stat-card mt-3">
+      <div class="card-body p-4">
+        <h6 class="fw-semibold mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Required CSV Format</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-2">
+            <thead class="table-primary">
+              <tr>
+                <th>USN</th><th>SubjectCode</th><th>Marks</th>
+                <th>SGPA</th><th>Category</th><th>AdmissionQuota</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1XX21CS001</td><td>23CST501</td>
+                <td>78</td><td>8.5</td><td>GM</td><td>CET</td>
+              </tr>
+              <tr>
+                <td>1XX21CS002</td><td>23CST501</td>
+                <td>34</td><td>5.2</td><td>SC</td><td>COMED_K</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted small mb-1"><strong>Optional columns:</strong> StudentName, SubjectName, Semester, Grade, AcademicYear</p>
+        <p class="text-muted small mb-1"><strong>Category values:</strong> GM, SC, ST, OBC, OTHER</p>
+        <p class="text-muted small mb-0"><strong>Quota values:</strong> CET, COMED_K, MANAGEMENT, NRI, OTHER</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}NBA-SAR Metrics{% endblock %}
+{% block page_title %}NBA-SAR Metrics Report{% endblock %}
+
+{% block content %}
+<!-- Filter -->
+<div class="card stat-card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Semester</label>
+        {{ form.semester }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Academic Year</label>
+        {{ form.academic_year }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small fw-semibold">Subject Code</label>
+        {{ form.subject_code }}
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-grow-1">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        <a href="{% url 'export_nba' %}?{{ request.GET.urlencode }}" class="btn btn-success">
+          <i class="bi bi-file-excel"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Info Panel -->
+<div class="alert alert-info d-flex gap-3 mb-4" role="alert">
+  <div><i class="bi bi-info-circle-fill fs-4"></i></div>
+  <div>
+    <strong>NBA-SAR Formula Reference:</strong><br>
+    <code>SI (Success Index) = (Passed / Appeared) × 100</code><br>
+    <code>API (Academic Performance Index) = (Mean SGPA × Passed / Appeared) × 10</code><br>
+    <small class="text-muted">Rows highlighted in yellow have pass% &lt; 70% (attention required per NBA norms)</small>
+  </div>
+</div>
+
+<!-- Metrics Table -->
+<div class="card stat-card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="text-muted mb-0">Subject-Wise NBA Metrics</h6>
+      <a href="{% url 'export_nba' %}?{{ request.GET.urlencode }}" class="btn btn-sm btn-success">
+        <i class="bi bi-download me-1"></i>Download Excel
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover table-sm align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>Subject Code</th><th>Subject Name</th><th>Sem</th>
+            <th>Year</th><th>Enrolled</th><th>Appeared</th>
+            <th>Passed</th><th>Pass %</th>
+            <th>Avg SGPA</th>
+            <th class="text-warning">SI</th>
+            <th class="text-info">API</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in metrics_list %}
+          <tr class="{% if m.pass_percent < 70 %}table-warning{% endif %}">
+            <td><code>{{ m.subject_code }}</code></td>
+            <td>{{ m.subject_name|default:"—" }}</td>
+            <td>{{ m.semester }}</td>
+            <td>{{ m.academic_year|default:"—" }}</td>
+            <td>{{ m.total_enrolled }}</td>
+            <td>{{ m.appeared }}</td>
+            <td>{{ m.passed }}</td>
+            <td>
+              <span class="badge {% if m.pass_percent >= 70 %}bg-success{% else %}bg-danger{% endif %}">
+                {{ m.pass_percent }}%
+              </span>
+            </td>
+            <td>{{ m.mean_sgpa }}</td>
+            <td><strong class="text-primary">{{ m.si }}</strong></td>
+            <td><strong class="text-info">{{ m.api }}</strong></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="11" class="text-center text-muted py-4">
+            No data found. <a href="{% url 'upload' %}">Upload results first.</a>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Result Analytics{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Total Results</span>
+          <span class="bg-primary bg-opacity-10 text-primary p-2 rounded-3"><i class="bi bi-file-earmark-text"></i></span>
+        </div>
+        <h3 class="fw-bold mb-0">{{ total_results }}</h3>
+        <small class="text-muted">records uploaded</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Students</span>
+          <span class="bg-success bg-opacity-10 text-success p-2 rounded-3"><i class="bi bi-people-fill"></i></span>
+        </div>
+        <h3 class="fw-bold mb-0">{{ total_students }}</h3>
+        <small class="text-muted">unique USNs</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Subjects</span>
+          <span class="bg-info bg-opacity-10 text-info p-2 rounded-3"><i class="bi bi-book"></i></span>
+        </div>
+        <h3 class="fw-bold mb-0">{{ total_subjects }}</h3>
+        <small class="text-muted">mapped subjects</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="text-muted small">Active Backlogs</span>
+          <span class="bg-danger bg-opacity-10 text-danger p-2 rounded-3"><i class="bi bi-exclamation-triangle-fill"></i></span>
+        </div>
+        <h3 class="fw-bold mb-0 text-danger">{{ total_backlogs }}</h3>
+        <small class="text-muted">pending clearance</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-5">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="card-title text-muted mb-3">Overall Pass/Fail Rate</h6>
+        {% if stats.total > 0 %}
+        <canvas id="overallChart" height="180"></canvas>
+        <div class="text-center mt-2">
+          <span class="badge bg-success me-2">Pass: {{ stats.pass_percent }}%</span>
+          <span class="badge bg-danger">Fail: {{ stats.fail_percent }}%</span>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox fs-1"></i>
+          <p class="mt-2">No data yet. <a href="{% url 'upload' %}">Upload results</a></p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <h6 class="card-title text-muted mb-3">Semester-Wise Pass Rate</h6>
+        <canvas id="semesterChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions + Recent -->
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="card-title text-muted mb-3">Quick Actions</h6>
+        <div class="d-grid gap-2">
+          <a href="{% url 'upload' %}" class="btn btn-primary"><i class="bi bi-upload me-2"></i>Upload Results</a>
+          <a href="{% url 'course_analysis' %}" class="btn btn-outline-primary"><i class="bi bi-bar-chart me-2"></i>Analyse Course</a>
+          <a href="{% url 'nba_report' %}" class="btn btn-outline-success"><i class="bi bi-award me-2"></i>NBA Report</a>
+          <a href="{% url 'export_nba' %}" class="btn btn-outline-secondary"><i class="bi bi-file-excel me-2"></i>Export to Excel</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card stat-card">
+      <div class="card-body">
+        <h6 class="card-title text-muted mb-3">Recently Uploaded Results</h6>
+        {% if recent_results %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>USN</th><th>Subject</th><th>Marks</th><th>SGPA</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {% for r in recent_results %}
+              <tr>
+                <td><code>{{ r.usn }}</code></td>
+                <td>{{ r.subject_code }}</td>
+                <td>{{ r.marks|default:"—" }}</td>
+                <td>{{ r.sgpa|default:"—" }}</td>
+                <td>
+                  {% if r.is_pass %}
+                    <span class="badge bg-success">Pass</span>
+                  {% else %}
+                    <span class="badge bg-danger">Fail</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center py-3">No results yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const semData = {{ semester_data_json|safe }};
+const semLabels = semData.map(d => 'Sem ' + d.semester);
+const semPass = semData.map(d => d.pass_percent);
+
+new Chart(document.getElementById('semesterChart'), {
+  type: 'bar',
+  data: {
+    labels: semLabels.length ? semLabels : ['No data'],
+    datasets: [{
+      label: 'Pass %',
+      data: semPass.length ? semPass : [0],
+      backgroundColor: semPass.map(p => p >= 70 ? '#22c55e' : '#ef4444'),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { max: 100, ticks: { callback: v => v + '%' } } }
+  }
+});
+
+{% if stats.total > 0 %}
+new Chart(document.getElementById('overallChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Pass', 'Fail'],
+    datasets: [{
+      data: [{{ stats.passed }}, {{ stats.failed }}],
+      backgroundColor: ['#22c55e', '#ef4444'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '70%',
+    plugins: { legend: { position: 'bottom' } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}
